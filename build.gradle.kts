@@ -1,0 +1,151 @@
+plugins {
+    java
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+}
+
+group = "com.github.meiiraru"
+version = "1.0.0"
+val mainClass = "hello_cinnamon.Main"
+
+//dependencies
+val cinnamonVersion = "0.5.1"
+
+val lwjglModules = arrayOf(
+    "lwjgl",
+    "lwjgl-assimp",
+    "lwjgl-glfw",
+    "lwjgl-nfd",
+    "lwjgl-openal",
+    "lwjgl-opengl",
+    "lwjgl-openxr",
+    "lwjgl-stb"
+)
+
+val os = Pair(
+    System.getProperty("os.name")!!,
+    System.getProperty("os.arch")!!
+).let { (name, arch) ->
+    when {
+        "FreeBSD" == name ->
+            "freebsd"
+
+        arrayOf("Linux", "SunOS", "Unit").any { name.startsWith(it) } ->
+            if (arrayOf("arm", "aarch64").any { arch.startsWith(it) })
+                "linux${if (arch.contains("64") || arch.startsWith("armv8")) "-arm64" else "-arm32"}"
+            else if (arch.startsWith("ppc"))
+                "linux-ppc64le"
+            else if (arch.startsWith("riscv"))
+                "linux-riscv64"
+            else
+                "linux"
+
+        arrayOf("Mac OS X", "Darwin").any { name.startsWith(it) } ->
+            "macos${if (arch.startsWith("aarch64")) "-arm64" else ""}"
+
+        arrayOf("Windows").any { name.startsWith(it) } ->
+            if (arch.contains("64"))
+                "windows${if (arch.startsWith("aarch64")) "-arm64" else ""}"
+            else
+                "windows-x86"
+
+        else ->
+            throw Error("Unrecognized or unsupported platform. Please set \"lwjglNatives\" manually")
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.meiiraru:Cinnamon:$cinnamonVersion")
+    val lwjglNatives = "natives-$os"
+    lwjglModules.forEach {
+        runtimeOnly("org.lwjgl:$it::$lwjglNatives")
+    }
+}
+
+tasks.withType<JavaExec> {
+    jvmArgs(
+        "--enable-native-access=ALL-UNNAMED",
+        "-Dorg.lwjgl.system.allocator=system",
+        "--sun-misc-unsafe-memory-access=allow"
+    )
+}
+
+tasks.register<Jar>("fatJar") {
+    description = "Generates a JAR containing the compiled classes and all dependencies of this project"
+    archiveClassifier.set(os)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+    manifest.attributes["Main-Class"] = mainClass
+
+    from(sourceSets.main.get().output)
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+}
+
+tasks.jar {
+    archiveClassifier.set("")
+    manifest.attributes["Main-Class"] = mainClass
+    from("LICENSE.md")
+}
+
+tasks.register<Exec>("packageApp") {
+    description = "Packages the application into a platform-specific format using jpackage"
+    dependsOn("fatJar")
+
+    val isWindows = os.contains("windows")
+    val appName = "${project.name}-${project.version}-$os"
+    val outputDir = layout.buildDirectory.dir("dist/$appName").get().asFile
+    val stagingDir = layout.buildDirectory.dir("staging").get().asFile
+
+    val fatJarTask = tasks.named<Jar>("fatJar")
+    val fatJarFileNameProvider = fatJarTask.flatMap { it.archiveFileName }
+    val fatJarFileProvider = fatJarTask.flatMap { it.archiveFile }
+
+    doFirst {
+        outputDir.deleteRecursively()
+        stagingDir.deleteRecursively()
+        stagingDir.mkdirs()
+
+        val fatJarFile = fatJarFileProvider.get().asFile
+        fatJarFile.copyTo(File(stagingDir, fatJarFile.name), overwrite = true)
+    }
+
+    val compiler = javaToolchains.compilerFor(java.toolchain).get()
+    val jdkHome = compiler.metadata.installationPath.asFile
+    val jpackageBin = if (isWindows) {
+        File(jdkHome, "bin/jpackage.exe").absolutePath
+    } else {
+        File(jdkHome, "bin/jpackage").absolutePath
+    }
+
+    //val iconExtension = if (isWindows) "ico" else "png"
+    //val iconFile = file("src/main/resources/resources/vanilla/textures/icon.$iconExtension")
+
+    workingDir = projectDir
+
+    val jpackageArgs = listOf(
+        jpackageBin,
+        "--type", "app-image",
+        "--name", appName,
+        "--input", stagingDir.absolutePath,
+        "--main-jar", fatJarFileNameProvider.get(),
+        "--main-class", mainClass,
+        "--dest", layout.buildDirectory.dir("dist").get().asFile.absolutePath,
+        "--app-version", project.version.toString(),
+        //"--icon", iconFile.absolutePath
+    )
+
+    commandLine(jpackageArgs)
+
+    doLast {
+        stagingDir.deleteRecursively()
+    }
+}
