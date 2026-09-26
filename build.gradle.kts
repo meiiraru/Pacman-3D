@@ -10,7 +10,7 @@ java {
 
 group = "com.github.meiiraru"
 version = "1.0.0"
-val mainClass = "hello_cinnamon.Main"
+val mainClass = "pacman.Main"
 
 //dependencies
 val cinnamonVersion = "0.5.1"
@@ -93,7 +93,7 @@ tasks.register<Jar>("fatJar") {
 tasks.jar {
     archiveClassifier.set("")
     manifest.attributes["Main-Class"] = mainClass
-    from("LICENSE.md")
+    //from("LICENSE.md")
 }
 
 tasks.register<Exec>("packageApp") {
