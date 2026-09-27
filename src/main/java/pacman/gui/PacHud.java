@@ -9,10 +9,12 @@ import cinnamon.render.WorldRenderer;
 import cinnamon.render.batch.VertexConsumer;
 import cinnamon.text.Text;
 import cinnamon.utils.Alignment;
+import cinnamon.utils.Colors;
 import cinnamon.vr.XrManager;
 import cinnamon.world.entity.Entity;
 import cinnamon.world.gui.Hud;
 import pacman.Main;
+import pacman.world.Coin;
 import pacman.world.Ghost;
 import pacman.world.PacmanWorld;
 
@@ -78,16 +80,21 @@ public class PacHud extends Hud {
             for (int i = 0; i < PacmanWorld.map.length; i++) {
                 for (int j = 0; j < PacmanWorld.map[i].length; j++) {
                     if (PacmanWorld.map[i][j] == '#')
-                        VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, j * s, i * s, (j + 1) * s, (i + 1) * s, 0xFFFFFFFF));
+                        VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, j * s, i * s, (j + 1) * s, (i + 1) * s, Colors.BLUE.argb));
                 }
             }
             int[] pos = PacmanWorld.mapPosition(world.playerEntity);
             VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s, pos[1] * s, (pos[0] + 1) * s, (pos[1] + 1) * s, 0xFFFFFF00));
 
             for (Entity entity : world.getAllEntities()) {
-                if (entity instanceof Ghost) {
+                if (entity instanceof Ghost g) {
                     pos = PacmanWorld.mapPosition(entity);
-                    VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s, pos[1] * s, (pos[0] + 1) * s, (pos[1] + 1) * s, 0xFFFF0000));
+                    VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s, pos[1] * s, (pos[0] + 1) * s, (pos[1] + 1) * s, g.getGhostType().color.argb));
+                }
+
+                if (entity instanceof Coin) {
+                    pos = PacmanWorld.mapPosition(entity);
+                    VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s + s/4f, pos[1] * s + s/4f, (pos[0] + 1) * s - s/4f, (pos[1] + 1) * s - s/4f, 0xFFFFFFFF));
                 }
             }
 

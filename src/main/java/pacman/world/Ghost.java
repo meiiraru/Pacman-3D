@@ -1,9 +1,11 @@
 package pacman.world;
 
+import cinnamon.math.Maths;
 import cinnamon.math.collision.Hit;
 import cinnamon.registry.EntityRegistry;
 import cinnamon.render.Camera;
 import cinnamon.render.MatrixStack;
+import cinnamon.utils.Colors;
 import cinnamon.utils.Resource;
 import cinnamon.world.entity.PhysEntity;
 import cinnamon.world.entity.living.Player;
@@ -36,7 +38,7 @@ public class Ghost extends PhysEntity {
         int[] tile = PacmanWorld.mapPosition(this);
 
         if ((tile[0] != lastTile[0] || tile[1] != lastTile[1]) && PacmanWorld.isInTileCenter(this)) {
-            int[] target = PacmanWorld.mapPosition(((PacmanWorld) world).playerEntity);
+            int[] target = getTargetTile(tile);
             currentDirection = getNextDir(target[0], target[1], tile[0], tile[1]);
             lastTile = tile;
         }
@@ -60,7 +62,7 @@ public class Ghost extends PhysEntity {
 
     @Override
     protected float getMoveSpeed() {
-        return 1f + ((PacmanWorld) world).getDifficulty() * 0.5f;
+        return 1.5f + ((PacmanWorld) world).getDifficulty() * 0.75f;
     }
 
     @Override
@@ -71,9 +73,54 @@ public class Ghost extends PhysEntity {
         }
     }
 
-    public Direction getNextDir(int targetX, int targetY, int tileX, int tileY) {
+    public GhostType getGhostType() {
+        return type;
+    }
+
+    private int[] getTargetTile(int[] ghostTile) {
+        Player player = (Player) ((PacmanWorld) world).playerEntity;
+        int[] playerPos = PacmanWorld.mapPosition(player);
+
+        return switch (this.type) {
+            //blinky directly targets the player current tile
+            case BLINKY -> playerPos;
+            //pinky targets 2 tiles ahead of the player current direction
+            case PINKY -> {
+                Direction pDir = getEntityDirection(player);
+                yield new int[]{playerPos[0] + (pDir.dx * 2), playerPos[1] + (pDir.dy * 2)};
+            }
+            //inky picks a pivot 1 tiles ahead of the player, draws a vector from blinky to that pivot, and doubles it
+            case INKY -> {
+                Direction pDir = getEntityDirection(player);
+                int pivotX = playerPos[0] + pDir.dx;
+                int pivotY = playerPos[1] + pDir.dy;
+
+                Ghost blinky = ((PacmanWorld) world).findBlinky();
+                if (blinky != null) {
+                    int[] blinkyPos = PacmanWorld.mapPosition(blinky);
+                    int vectorX = pivotX - blinkyPos[0];
+                    int vectorY = pivotY - blinkyPos[1];
+                    yield new int[]{pivotX + vectorX, pivotY + vectorY};
+                }
+                //fallback to pinky logic if blinky is missing
+                yield new int[]{pivotX, pivotY};
+            }
+            //clyde targets the player if further than 8 tiles away
+            //if 8 tiles or closer, he retreats to his scatter corner (bottom-left)
+            case CLYDE -> {
+                int distSq = getDistanceSquared(ghostTile[0], ghostTile[1], playerPos[0], playerPos[1]);
+                if (distSq > 8 * 8) {
+                    yield playerPos;
+                } else {
+                    yield new int[]{0, PacmanWorld.map.length - 2}; //bottom-left corner
+                }
+            }
+        };
+    }
+
+    private Direction getNextDir(int targetX, int targetY, int tileX, int tileY) {
         Direction bestDirection = this.currentDirection;
-        double shortestDistance = Double.MAX_VALUE;
+        int shortestDistanceSq = Integer.MAX_VALUE;
 
         for (Direction dir : Direction.values()) {
             if (dir == this.currentDirection.getOpposite())
@@ -88,14 +135,37 @@ public class Ghost extends PhysEntity {
                 continue;
 
             //grab closest distance to target tile
-            int distance = Math.abs(nextTileX - targetX) + Math.abs(nextTileY - targetY);
-            if (distance < shortestDistance) {
-                shortestDistance = distance;
+            int distanceSq = getDistanceSquared(nextTileX, nextTileY, targetX, targetY);
+            if (distanceSq < shortestDistanceSq) {
+                shortestDistanceSq = distanceSq;
                 bestDirection = dir;
             }
         }
 
+        //check if forwards is a wall, and if so, run backwards
+        int forwardTileX = tileX + bestDirection.dx;
+        int forwardTileY = tileY + bestDirection.dy;
+        if (PacmanWorld.map[forwardTileY][forwardTileX] == '#')
+            bestDirection = bestDirection.getOpposite();
+
         return bestDirection;
+    }
+
+    private int getDistanceSquared(int x1, int y1, int x2, int y2) {
+        int dx = x1 - x2;
+        int dy = y1 - y2;
+        return (dx * dx) + (dy * dy);
+    }
+
+    private Direction getEntityDirection(PhysEntity entity) {
+        float yaw = Maths.dirToRot(entity.getMotion().normalize(new Vector3f())).y;
+        //normalize rotation to 0-360 degrees
+        float normalized = (yaw % 360 + 360) % 360;
+
+        if (normalized >=  45 && normalized < 135) return Direction.RIGHT; //90
+        if (normalized >= 135 && normalized < 225) return Direction.DOWN;  //180
+        if (normalized >= 225 && normalized < 315) return Direction.LEFT;  //270
+        return Direction.UP; //0
     }
 
     public enum Direction {
@@ -123,9 +193,15 @@ public class Ghost extends PhysEntity {
     }
 
     public enum GhostType {
-        BLINKY, //red    - chaser (directly targets player)
-        PINKY,  //pink   - ambusher (aims ahead of player)
-        INKY,   //cyan   - unpredictable (flanks using blinky position)
-        CLYDE   //orange - shy (chases until close, then flees)
+        BLINKY(Colors.RED),   //red    - chaser (directly targets player)
+        PINKY(Colors.PINK),   //pink   - ambusher (aims ahead of player)
+        INKY(Colors.CYAN),    //cyan   - unpredictable (flanks using blinky position)
+        CLYDE(Colors.ORANGE); //orange - shy (chases until close, then flees)
+
+        public final Colors color;
+
+        GhostType(Colors color) {
+            this.color = color;
+        }
     }
 }
