@@ -15,6 +15,8 @@ public class Main {
 
     public static final List<String> highScores = new ArrayList<>(10);
 
+    public static boolean renderDebug;
+
     public static void main(String... args) {
         //setup cinnamon flags
         Cinnamon.TITLE = "Pacman 3D";
@@ -25,6 +27,14 @@ public class Main {
         String[] newArgs = new String[args.length + toAdd.length];
         System.arraycopy(args, 0, newArgs, 0, args.length);
         System.arraycopy(toAdd, 0, newArgs, args.length, toAdd.length);
+
+        //render debug flag
+        for (String arg : args) {
+            if (arg.equals("--pac-debug")) {
+                renderDebug = true;
+                break;
+            }
+        }
 
         //set the main menu
         Client.mainScreen = PacmanMainMenu::new;
@@ -62,13 +72,15 @@ public class Main {
             });
         });
 
-        CoreEvents.CLIENT_EXIT.register(() -> {
-            //save the high scores to the file
-            String data = String.join("\n", highScores);
-            IOUtils.writeFileCompressed(IOUtils.ROOT_FOLDER.resolve("highscores.moon"), data.getBytes());
-        });
+        CoreEvents.CLIENT_EXIT.register(Main::saveScores);
 
         //start the engine
         new Cinnamon(newArgs).run();
+    }
+
+    public static void saveScores() {
+        //save the high scores to the file
+        String data = String.join("\n", highScores);
+        IOUtils.writeFileCompressed(IOUtils.ROOT_FOLDER.resolve("highscores.moon"), data.getBytes());
     }
 }

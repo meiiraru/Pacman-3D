@@ -1,0 +1,14 @@
+# Made in Blockbench 5.2.1
+newmtl blinky
+map_Kd -smooth_mip blinky.png
+map_Ke -mip blinky_e.png
+newmtl pinky
+map_Kd -smooth_mip pinky.png
+map_Ke -mip pinky_e.png
+newmtl inky
+map_Kd -smooth_mip inky.png
+map_Ke -mip inky_e.png
+newmtl clyde
+map_Kd -smooth_mip clyde.png
+map_Ke -mip clyde_e.png
+newmtl none

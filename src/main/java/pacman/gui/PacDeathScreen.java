@@ -56,12 +56,17 @@ public class PacDeathScreen extends Screen {
                     return;
 
                 String name = text.trim();
+                if (name.isBlank())
+                    return;
+
                 String scoreLine = name + ":" + score;
                 if (index != -1) {
                     Main.highScores.add(index, scoreLine);
                 } else {
                     Main.highScores.add(scoreLine);
                 }
+
+                Main.saveScores();
             });
             UIHelper.setPopup(width / 2, height / 2, popup);
             popup.open();

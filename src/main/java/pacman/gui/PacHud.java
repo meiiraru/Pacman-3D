@@ -3,13 +3,17 @@ package pacman.gui;
 import cinnamon.Client;
 import cinnamon.gui.DebugScreen;
 import cinnamon.math.Maths;
+import cinnamon.model.GeometryHelper;
 import cinnamon.render.MatrixStack;
 import cinnamon.render.WorldRenderer;
 import cinnamon.render.batch.VertexConsumer;
 import cinnamon.text.Text;
 import cinnamon.utils.Alignment;
 import cinnamon.vr.XrManager;
+import cinnamon.world.entity.Entity;
 import cinnamon.world.gui.Hud;
+import pacman.Main;
+import pacman.world.Ghost;
 import pacman.world.PacmanWorld;
 
 public class PacHud extends Hud {
@@ -64,6 +68,31 @@ public class PacHud extends Hud {
         matrices.popMatrix();
 
         matrices.popMatrix();
+
+        //debug minimap
+        if (Main.renderDebug) {
+            float s = 4f;
+            matrices.pushMatrix();
+            matrices.translate(c.window.getGUIWidth() - PacmanWorld.map[0].length * s - 4, c.window.getGUIHeight() - PacmanWorld.map.length * s - 4, 0f);
+
+            for (int i = 0; i < PacmanWorld.map.length; i++) {
+                for (int j = 0; j < PacmanWorld.map[i].length; j++) {
+                    if (PacmanWorld.map[i][j] == '#')
+                        VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, j * s, i * s, (j + 1) * s, (i + 1) * s, 0xFFFFFFFF));
+                }
+            }
+            int[] pos = PacmanWorld.mapPosition(world.playerEntity);
+            VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s, pos[1] * s, (pos[0] + 1) * s, (pos[1] + 1) * s, 0xFFFFFF00));
+
+            for (Entity entity : world.getAllEntities()) {
+                if (entity instanceof Ghost) {
+                    pos = PacmanWorld.mapPosition(entity);
+                    VertexConsumer.MAIN.consume(GeometryHelper.rectangle(matrices, pos[0] * s, pos[1] * s, (pos[0] + 1) * s, (pos[1] + 1) * s, 0xFFFF0000));
+                }
+            }
+
+            matrices.popMatrix();
+        }
 
         //draw fade
         if (!XrManager.isInXR() && fadeTicks > 0)

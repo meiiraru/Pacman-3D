@@ -10,6 +10,7 @@ import cinnamon.world.sky.CubemapSky;
 import cinnamon.world.terrain.PrimitiveTerrain;
 import cinnamon.world.terrain.Terrain;
 import cinnamon.world.world.WorldClient;
+import org.joml.Vector3f;
 import pacman.gui.PacDeathScreen;
 import pacman.gui.PacHud;
 import pacman.gui.PacPauseMenu;
@@ -21,7 +22,9 @@ public class PacmanWorld extends WorldClient {
     private int coins = 0;
     private int collectedCoins = 0;
 
-    private static final char[][] map = {
+    private int difficulty = 0;
+
+    public static final char[][] map = {
             {'#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'},
             {'#', '*', '*', '*', '*', '*', '*', '*', '*', '#', '*', '*', '*', '*', '*', '*', '*', '*', '#'},
             {'#', '*', '#', '#', '*', '#', '#', '#', '*', '#', '*', '#', '#', '#', '*', '#', '#', '*', '#'},
@@ -31,8 +34,8 @@ public class PacmanWorld extends WorldClient {
             {'#', '*', '*', '*', '*', '#', '*', '*', '*', '#', '*', '*', '*', '#', '*', '*', '*', '*', '#'},
             {'#', '#', '#', '#', '*', '#', '#', '#', '*', '#', '*', '#', '#', '#', '*', '#', '#', '#', '#'},
             {'#', ' ', ' ', '#', '*', '#', '*', '*', '*', '*', '*', '*', '*', '#', '*', '#', ' ', ' ', '#'},
-            {'#', '#', '#', '#', '*', '#', '*', '#', '#', ' ', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
-            {'#', '*', '*', '*', '*', '*', '*', '#', ' ', ' ', ' ', '#', '*', '*', '*', '*', '*', '*', '#'},
+            {'#', '#', '#', '#', '*', '#', '*', '#', '#', 'a', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
+            {'#', '*', '*', '*', '*', '*', '*', '#', 'b', 'c', 'd', '#', '*', '*', '*', '*', '*', '*', '#'},
             {'#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
             {'#', ' ', ' ', '#', '*', '#', '*', '*', '*', '@', '*', '*', '*', '#', '*', '#', ' ', ' ', '#'},
             {'#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
@@ -64,6 +67,7 @@ public class PacmanWorld extends WorldClient {
     @Override
     protected void levelLoad() {
         this.coins = 0;
+        this.collectedCoins = 0;
 
         //floor
         Terrain floor = new PrimitiveTerrain(GeometryHelper.box(null, 1, -1, 1, map[0].length * 3 - 3, 0, map.length * 3 - 3, 0xFF02011A));
@@ -86,6 +90,19 @@ public class PacmanWorld extends WorldClient {
                         //player spawn
                         this.playerEntity.setPos(j * 3 + 0.5f, 0, i * 3 + 0.5f);
                         this.playerEntity.setRot(0f, -90f, 0f);
+                    }
+                    case 'a', 'b', 'c', 'd' -> {
+                        //ghost spawn
+                        Ghost.GhostType type = switch (c) {
+                            case 'a' -> Ghost.GhostType.BLINKY;
+                            case 'b' -> Ghost.GhostType.PINKY;
+                            case 'c' -> Ghost.GhostType.INKY;
+                            case 'd' -> Ghost.GhostType.CLYDE;
+                            default -> throw new IllegalStateException("Unexpected value: " + c);
+                        };
+                        Entity ghost = new Ghost(type);
+                        ghost.setPos(j * 3 + 0.5f, 0, i * 3 + 0.5f);
+                        addEntity(ghost);
                     }
                 }
 
@@ -163,6 +180,13 @@ public class PacmanWorld extends WorldClient {
     public void collectCoin() {
         collectedCoins++;
         awardScore(1);
+
+        //all coins collected, increase difficulty
+        if (collectedCoins >= coins) {
+            difficulty++;
+            System.out.println("Difficulty: " + difficulty);
+            reconstructWorld();
+        }
     }
 
     public int getScore() {
@@ -175,5 +199,23 @@ public class PacmanWorld extends WorldClient {
 
     public int getTotalCoins() {
         return coins;
+    }
+
+    public int getDifficulty() {
+        return difficulty;
+    }
+
+    public static int[] mapPosition(Entity entity) {
+        Vector3f pos = entity.getTransform().getPos();
+        int x = Math.round(pos.x / 3f);
+        int y = Math.round(pos.z / 3f);
+        return new int[]{x, y};
+    }
+
+    public static boolean isInTileCenter(Entity entity) {
+        Vector3f pos = entity.getTransform().getPos();
+        float x = pos.x % 3f;
+        float z = pos.z % 3f;
+        return (x > 0.4f && x < 0.6f) && (z > 0.4f && z < 0.6f);
     }
 }
