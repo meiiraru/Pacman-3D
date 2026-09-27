@@ -1,6 +1,7 @@
 package pacman;
 
 import cinnamon.registry.EntityRegistry;
+import cinnamon.sound.SoundCategory;
 import cinnamon.utils.Resource;
 import cinnamon.world.entity.PhysEntity;
 import cinnamon.world.entity.collectable.Collectable;
@@ -18,7 +19,13 @@ public class Coin extends Collectable {
 
     @Override
     protected boolean onPickUp(PhysEntity entity) {
-        return entity instanceof Player;
+        if (!(entity instanceof Player))
+            return false;
+
+        PacmanWorld world = (PacmanWorld) entity.getWorld();
+        world.playSound(new Resource("pacman", "coin/coin.wav"), SoundCategory.ENTITY, entity.getTransform().getPos());
+        world.collectCoin();
+        return true;
     }
 
     @Override

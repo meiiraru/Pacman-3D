@@ -1,16 +1,22 @@
 package pacman;
 
 import cinnamon.model.GeometryHelper;
+import cinnamon.registry.SkyBoxRegistry;
 import cinnamon.render.Camera;
 import cinnamon.render.MatrixStack;
 import cinnamon.render.WorldRenderer;
-import cinnamon.world.Abilities;
 import cinnamon.world.entity.Entity;
+import cinnamon.world.sky.CubemapSky;
 import cinnamon.world.terrain.PrimitiveTerrain;
 import cinnamon.world.terrain.Terrain;
 import cinnamon.world.world.WorldClient;
 
 public class PacmanWorld extends WorldClient {
+
+    private int score = 0;
+
+    private int coins = 0;
+    private int collectedCoins = 0;
 
     private static final char[][] map = {
             {'#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'},
@@ -22,8 +28,8 @@ public class PacmanWorld extends WorldClient {
             {'#', '*', '*', '*', '*', '#', '*', '*', '*', '#', '*', '*', '*', '#', '*', '*', '*', '*', '#'},
             {'#', '#', '#', '#', '*', '#', '#', '#', '*', '#', '*', '#', '#', '#', '*', '#', '#', '#', '#'},
             {'#', ' ', ' ', '#', '*', '#', '*', '*', '*', '*', '*', '*', '*', '#', '*', '#', ' ', ' ', '#'},
-            {'#', '#', '#', '#', '*', '#', '*', '#', '#', '*', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
-            {'#', '*', '*', '*', '*', '*', '*', '#', '*', '*', '*', '#', '*', '*', '*', '*', '*', '*', '#'},
+            {'#', '#', '#', '#', '*', '#', '*', '#', '#', ' ', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
+            {'#', '*', '*', '*', '*', '*', '*', '#', ' ', ' ', ' ', '#', '*', '*', '*', '*', '*', '*', '#'},
             {'#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
             {'#', ' ', ' ', '#', '*', '#', '*', '*', '*', '@', '*', '*', '*', '#', '*', '#', ' ', ' ', '#'},
             {'#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#', '#', '*', '#', '*', '#', '#', '#', '#'},
@@ -38,6 +44,19 @@ public class PacmanWorld extends WorldClient {
     };
 
     @Override
+    public void init() {
+        //this.chatScreen = () -> null;
+
+        this.hud = new PacHud();
+
+        this.sky = new CubemapSky();
+        ((CubemapSky) this.sky).setSkyBox(SkyBoxRegistry.WHITE.resource);
+        this.sky.setTint(0xFF02011A);
+
+        super.init();
+    }
+
+    @Override
     protected void levelLoad() {
         //floor
         Terrain floor = new PrimitiveTerrain(GeometryHelper.box(null, 1, -1, 1, map[0].length * 3 - 3, 0, map.length * 3 - 3, 0xFF02011A));
@@ -50,10 +69,11 @@ public class PacmanWorld extends WorldClient {
                 switch (c) {
                     case '#' -> { continue; }
                     case '*' -> {
-                        //orb
-                        Entity orb = new Coin();
-                        orb.setPos(j * 3 + 0.5f, 0.5f, i * 3 + 0.5f);
-                        addEntity(orb);
+                        //coins
+                        Entity coin = new Coin();
+                        coin.setPos(j * 3 + 0.5f, 0.5f, i * 3 + 0.5f);
+                        addEntity(coin);
+                        coins++;
                     }
                     case '@' -> {
                         //player spawn
@@ -97,9 +117,15 @@ public class PacmanWorld extends WorldClient {
 
     @Override
     public void render(MatrixStack matrices, float delta) {
-        WorldRenderer.renderSky = false;
         WorldRenderer.renderClouds = false;
         WorldRenderer.renderShadows = false;
+        WorldRenderer.renderWater = false;
+        WorldRenderer.renderFire = false;
+        WorldRenderer.renderSSR = false;
+        WorldRenderer.renderLights = false;
+        WorldRenderer.renderVolLight = false;
+        WorldRenderer.renderDecals = false;
+        WorldRenderer.renderRefract = false;
         super.render(matrices, delta);
     }
 
@@ -117,12 +143,30 @@ public class PacmanWorld extends WorldClient {
     @Override
     public void respawn(boolean init) {
         PacPlayer player = new PacPlayer();
-        player.getAbilities()
-                .set(Abilities.Ability.CAN_BUILD, false)
-                .set(Abilities.Ability.CAN_FLY, true);
-
         this.playerEntity = player;
         this.cameraEntity = player;
         this.addEntity(player);
+    }
+
+    public void awardScore(int amount) {
+        score += amount;
+        System.out.println("Score: " + score);
+    }
+
+    public void collectCoin() {
+        collectedCoins++;
+        awardScore(1);
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    public int getCollectedCoins() {
+        return collectedCoins;
+    }
+
+    public int getTotalCoins() {
+        return coins;
     }
 }
