@@ -13,7 +13,7 @@ version = "1.0.0"
 val mainClass = "pacman.Main"
 
 //dependencies
-val cinnamonVersion = "0.5.1"
+val cinnamonVersion = "0.5.2"
 
 val lwjglModules = arrayOf(
     "lwjgl",

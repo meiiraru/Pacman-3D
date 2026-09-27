@@ -1,0 +1,11 @@
+{
+  "tile_x": 1,
+  "tile_y": 4,
+  "interpolate": false,
+  "frames": [
+    {"frame": 0, "time": 2},
+    {"frame": 1, "time": 2},
+    {"frame": 2, "time": 2},
+    {"frame": 3, "time": 2}
+  ]
+}

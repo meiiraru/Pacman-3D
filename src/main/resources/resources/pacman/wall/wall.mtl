@@ -1,0 +1,5 @@
+# Made in Blockbench 5.2.1
+newmtl m_784c1f39-205d-04e7-0a8a-28aca4d98d51
+map_Kd -smooth_mip texture.png
+map_Ke -mip texture_e.png
+newmtl none
