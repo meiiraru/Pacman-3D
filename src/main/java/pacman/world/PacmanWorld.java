@@ -1,4 +1,4 @@
-package pacman;
+package pacman.world;
 
 import cinnamon.model.GeometryHelper;
 import cinnamon.registry.SkyBoxRegistry;
@@ -10,6 +10,9 @@ import cinnamon.world.sky.CubemapSky;
 import cinnamon.world.terrain.PrimitiveTerrain;
 import cinnamon.world.terrain.Terrain;
 import cinnamon.world.world.WorldClient;
+import pacman.gui.PacDeathScreen;
+import pacman.gui.PacHud;
+import pacman.gui.PacPauseMenu;
 
 public class PacmanWorld extends WorldClient {
 
@@ -45,7 +48,9 @@ public class PacmanWorld extends WorldClient {
 
     @Override
     public void init() {
-        //this.chatScreen = () -> null;
+        this.chatScreen = PacPauseMenu::new;
+        this.pauseScreen = PacPauseMenu::new;
+        this.deathScreen = PacDeathScreen::new;
 
         this.hud = new PacHud();
 
@@ -58,6 +63,8 @@ public class PacmanWorld extends WorldClient {
 
     @Override
     protected void levelLoad() {
+        this.coins = 0;
+
         //floor
         Terrain floor = new PrimitiveTerrain(GeometryHelper.box(null, 1, -1, 1, map[0].length * 3 - 3, 0, map.length * 3 - 3, 0xFF02011A));
         addTerrain(floor);

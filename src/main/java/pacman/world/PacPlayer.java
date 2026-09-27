@@ -1,4 +1,4 @@
-package pacman;
+package pacman.world;
 
 import cinnamon.model.GeometryHelper;
 import cinnamon.registry.LivingModelRegistry;

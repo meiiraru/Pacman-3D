@@ -1,4 +1,4 @@
-package pacman;
+package pacman.gui;
 
 import cinnamon.gui.Screen;
 import cinnamon.gui.screens.MainMenu;
@@ -6,6 +6,7 @@ import cinnamon.gui.widgets.ContainerGrid;
 import cinnamon.gui.widgets.types.Button;
 import cinnamon.render.MatrixStack;
 import cinnamon.text.Text;
+import pacman.world.PacmanWorld;
 
 public class PacmanMainMenu extends Screen {
 
@@ -17,6 +18,10 @@ public class PacmanMainMenu extends Screen {
         //play
         Button play = new MainMenu.MainButton(Text.of("Play"), _ -> new PacmanWorld().init());
         grid.addWidget(play);
+
+        //high scores
+        Button hiscores = new MainMenu.MainButton(Text.of("High scores"), _ -> client.setScreen(new PacScoresScreen(this)));
+        grid.addWidget(hiscores);
 
         //exit
         Button exitButton = new MainMenu.MainButton(Text.translated("gui.exit"), _ -> client.window.exit());

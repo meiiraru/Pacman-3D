@@ -1,4 +1,4 @@
-package pacman;
+package pacman.gui;
 
 import cinnamon.Client;
 import cinnamon.gui.DebugScreen;
@@ -10,6 +10,7 @@ import cinnamon.text.Text;
 import cinnamon.utils.Alignment;
 import cinnamon.vr.XrManager;
 import cinnamon.world.gui.Hud;
+import pacman.world.PacmanWorld;
 
 public class PacHud extends Hud {
 

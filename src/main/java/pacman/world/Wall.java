@@ -1,4 +1,4 @@
-package pacman;
+package pacman.world;
 
 import cinnamon.model.material.Material;
 import cinnamon.registry.TerrainRegistry;

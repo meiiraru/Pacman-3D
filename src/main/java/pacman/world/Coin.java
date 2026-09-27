@@ -1,4 +1,4 @@
-package pacman;
+package pacman.world;
 
 import cinnamon.registry.EntityRegistry;
 import cinnamon.sound.SoundCategory;
