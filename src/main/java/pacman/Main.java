@@ -2,8 +2,10 @@ package pacman;
 
 import cinnamon.Cinnamon;
 import cinnamon.Client;
-import cinnamon.events.CoreEvents;
+import cinnamon.events.Events;
 import cinnamon.gui.GUISkin;
+import cinnamon.settings.ArgsOptions;
+import cinnamon.settings.CliOption;
 import cinnamon.utils.IOUtils;
 import cinnamon.utils.Resource;
 import pacman.gui.PacmanMainMenu;
@@ -15,7 +17,7 @@ public class Main {
 
     public static final List<String> highScores = new ArrayList<>(10);
 
-    public static boolean renderDebug;
+    public static CliOption<Boolean> renderDebug = CliOption.flagOption("pac_debug", "Render debug map for pacman", "--pac-debug");
 
     public static void main(String... args) {
         //setup cinnamon flags
@@ -23,24 +25,14 @@ public class Main {
         Cinnamon.NAMESPACE = "pacman";
 
         //inject cli args
-        String[] toAdd = {"--window-title-fps"};
-        String[] newArgs = new String[args.length + toAdd.length];
-        System.arraycopy(args, 0, newArgs, 0, args.length);
-        System.arraycopy(toAdd, 0, newArgs, args.length, toAdd.length);
-
-        //render debug flag
-        for (String arg : args) {
-            if (arg.equals("--pac-debug")) {
-                renderDebug = true;
-                break;
-            }
-        }
+        ArgsOptions.WINDOW_TITLE_FPS.set(true);
+        ArgsOptions.register(renderDebug);
 
         //set the main menu
         Client.mainScreen = PacmanMainMenu::new;
 
         //register client events
-        CoreEvents.CLIENT_INIT.register(() -> {
+        Events.CLIENT_INIT.register("pacman:init", () -> {
             //set the GUI skin to minimal dark
             GUISkin.setCurrentSkin(new Resource("data/gui_skins/minimal_dark.json"));
 
@@ -72,10 +64,10 @@ public class Main {
             });
         });
 
-        CoreEvents.CLIENT_EXIT.register(Main::saveScores);
+        Events.CLIENT_EXIT.register("pacman:save_scores", Main::saveScores);
 
         //start the engine
-        new Cinnamon(newArgs).run();
+        new Cinnamon(args).run();
     }
 
     public static void saveScores() {

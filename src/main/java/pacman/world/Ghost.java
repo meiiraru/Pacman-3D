@@ -84,38 +84,64 @@ public class Ghost extends PhysEntity {
         return switch (this.type) {
             //blinky directly targets the player current tile
             case BLINKY -> playerPos;
-            //pinky targets 2 tiles ahead of the player current direction
+            //pinky targets 4 tiles ahead of the player current direction
             case PINKY -> {
                 Direction pDir = getEntityDirection(player);
-                yield new int[]{playerPos[0] + (pDir.dx * 2), playerPos[1] + (pDir.dy * 2)};
+                int x = pDir.dx;
+                int y = pDir.dy;
+
+                //pinky has a bug where he targets 4 tiles up and 4 tiles left when the player is facing up
+                if (pDir == Direction.UP)
+                    x = -1;
+
+                int[] target = new int[]{playerPos[0] + (x * 4), playerPos[1] + (y * 4)};
+                yield overrideIfPlayerIsCloser(ghostTile, playerPos, target);
             }
-            //inky picks a pivot 1 tiles ahead of the player, draws a vector from blinky to that pivot, and doubles it
+            //inky picks a pivot 2 tiles ahead of the player, draws a vector from blinky to that pivot, and doubles it
             case INKY -> {
                 Direction pDir = getEntityDirection(player);
-                int pivotX = playerPos[0] + pDir.dx;
-                int pivotY = playerPos[1] + pDir.dy;
+                int x = pDir.dx;
+                int y = pDir.dy;
 
+                //inky also have the same bug as pinky when the player is facing up
+                if (pDir == Direction.UP)
+                    x = -1;
+
+                int pivotX = playerPos[0] + (x * 2);
+                int pivotY = playerPos[1] + (y * 2);
+
+                int[] target;
                 Ghost blinky = ((PacmanWorld) world).findBlinky();
                 if (blinky != null) {
                     int[] blinkyPos = PacmanWorld.mapPosition(blinky);
                     int vectorX = pivotX - blinkyPos[0];
                     int vectorY = pivotY - blinkyPos[1];
-                    yield new int[]{pivotX + vectorX, pivotY + vectorY};
+                    target = new int[]{pivotX + vectorX, pivotY + vectorY};
+                } else {
+                    //fallback to pinky logic if blinky is missing
+                    target = new int[]{pivotX, pivotY};
                 }
-                //fallback to pinky logic if blinky is missing
-                yield new int[]{pivotX, pivotY};
+
+                yield overrideIfPlayerIsCloser(ghostTile, playerPos, target);
             }
-            //clyde targets the player if further than 8 tiles away
-            //if 8 tiles or closer, he retreats to his scatter corner (bottom-left)
+            //clyde targets the player if further than 4 tiles away
+            //if 4 tiles or closer, he retreats to his scatter corner (bottom-left)
+            //(original is 8 tiles)
             case CLYDE -> {
                 int distSq = getDistanceSquared(ghostTile[0], ghostTile[1], playerPos[0], playerPos[1]);
-                if (distSq > 8 * 8) {
+                if (distSq > 4 * 4) {
                     yield playerPos;
                 } else {
-                    yield new int[]{0, PacmanWorld.map.length - 2}; //bottom-left corner
+                    yield new int[]{0, PacmanWorld.map.length - 1}; //bottom-left corner
                 }
             }
         };
+    }
+
+    private int[] overrideIfPlayerIsCloser(int[] ghostTile, int[] playerPos, int[] targetTile) {
+        int distToPlayerSq = getDistanceSquared(ghostTile[0], ghostTile[1], playerPos[0], playerPos[1]);
+        int distToTargetSq = getDistanceSquared(ghostTile[0], ghostTile[1], targetTile[0], targetTile[1]);
+        return distToPlayerSq < distToTargetSq ? playerPos : targetTile;
     }
 
     private Direction getNextDir(int targetX, int targetY, int tileX, int tileY) {

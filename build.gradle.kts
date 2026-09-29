@@ -9,11 +9,11 @@ java {
 }
 
 group = "com.github.meiiraru"
-version = "1.0.0"
+version = "1.0.1"
 val mainClass = "pacman.Main"
 
 //dependencies
-val cinnamonVersion = "0.5.2"
+val cinnamonVersion = "0.5.3"
 
 val lwjglModules = arrayOf(
     "lwjgl",

@@ -72,7 +72,7 @@ public class PacHud extends Hud {
         matrices.popMatrix();
 
         //debug minimap
-        if (Main.renderDebug) {
+        if (Main.renderDebug.get()) {
             float s = 4f;
             matrices.pushMatrix();
             matrices.translate(c.window.getGUIWidth() - PacmanWorld.map[0].length * s - 4, c.window.getGUIHeight() - PacmanWorld.map.length * s - 4, 0f);
